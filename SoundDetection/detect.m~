@@ -1,0 +1,17 @@
+
+function [ diff ] = calc_diff(frame, 
+
+
+y = wavread('Jesse_normal.wav');
+y = y';
+y = y(1, :); %mono audio
+num_particles = 100;
+
+pf = ParticleFilter(size(y, 2), size(y, 1), num_particles);
+
+step_size = int32(size(y, 2)/100);
+
+for i = 1:100
+    frame = y(:, ((i - 1) * step_size + 1):(step_size * i));
+    
+end

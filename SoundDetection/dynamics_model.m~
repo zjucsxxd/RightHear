@@ -1,0 +1,9 @@
+function [ legal_moves, prob_distn ] = dynamics_model( pos, movement_size, num_guesses )
+
+    rnd = randn(num_guesses);
+    prob_distn = rnd / sum(rnd);
+    % move the post fo
+    legal_moves = repmat(pos, 1, num_guesses) + (-movement_size * rnd + movement_size);
+    
+end
+

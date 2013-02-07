@@ -1,0 +1,11 @@
+
+function [ diff ] = calc_diff(data, frame, centers)
+
+
+    for i = 1:size(centers, 2)
+        range = (centers(i, 2) - (size(frame, 2) / 2)):(centers(i, 2) + (size(frame, 2) / 2))
+        
+        diff(i) = 
+    end
+    
+end
