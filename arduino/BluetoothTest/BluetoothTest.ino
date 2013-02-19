@@ -20,11 +20,16 @@
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 
+const int ledPin =  7;      // the number of the LED pin
+
 void setup() {
   // initialize serial (115k for bluetooth radio)
   Serial.begin(115200);
   // reserve 200 bytes for the inputString:
   inputString.reserve(200);
+  
+  pinMode(ledPin, OUTPUT);
+  
 }
 
 void loop() {
@@ -34,6 +39,9 @@ void loop() {
     // clear the string:
     inputString = "";
     stringComplete = false;
+    digitalWrite(ledPin, HIGH);
+    delay(500);
+    digitalWrite(ledPin, LOW);
   }
 }
 
