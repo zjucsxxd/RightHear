@@ -1,28 +1,88 @@
-// Testing interrupt-based analog reading
-// ATMega328p
+//
+// RightHear.ino
+//
+// This is the main sketch for the RightHear voice processing and recognition system.  This sketch is responsible for:
+//    Sampling the microphones
+//    Rejecting silence/garbage input
+//    Interlacing two channels of audio
+//    Sending interlaced data over bluetooth to processor
+//    Receiving haptic feedback messages, and engaging feedback mechanisms.
+//
+// Memory Requirements:
+//   Sound.c/h - 528 bytes per channel
+//   Haptic.c/h - 32 bytes.
+//
+//
 
-// Note, many macro values are defined in <avr/io.h> and
-// <avr/interrupts.h>, which are included automatically by
-// the Arduino interface
+#include "Haptic.h"
+#include "Sound.h"
 
-// High when a value is ready to be read
-volatile int readFlag;
+// Digital pins
+int hapVibLeftPin  = 7;
+int hapVibRightPin = 8;
+int txLedPin = 13;
 
-// Value to store analog result
-volatile int analogVal;
-
-int ledPin = 13;
-
+// Analog pins
 int micInPin = 0; //analog in for microphone
 
+// Function prototypes
 void setupADCInterruptOnPin(int analogInPin);
 
 // Initialization
 void setup(){
- 
-  //set up the ADC to sample from 
+
+  setupHaptic();
+  setupSound();
+
+  //set up the ADC to sample from and kick off the first ADC
   setupADCInterruptOnPin(micInPin);
+  
+  // Callback for haptic feedback/alerts
+  hapticCallback=alertUserHaptic;
+
+  // Callback for sending sound buffer
+  txSoundCallback=sendSoundBuffer;
+
+  // For the bluetooth connection
+  Serial.begin(115200);
+ 
+  // Haptic feedback vibration motors
+  pinMode(hapVibLeftPin,  OUTPUT);
+  pinMode(hapVibRightPin, OUTPUT);
+
+  // TX light
+  pinMode(txLedPin, OUTPUT);
 }
+
+
+// Processor loop
+void loop() {
+
+  //NOTE: these both work on callbacks.
+
+  //run the sound subroutines
+  doSoundLoop();
+  //run the haptic subroutines
+  doHapticLoop();
+  
+}
+
+void alertUserHaptic(int region) {
+  
+}
+
+// Callback to send sound buffer to processor via serial (Bluetooth)
+void sendSoundBuffer(byte *buffer, int len) {
+    //signal TX
+    digitalWrite(txLedPin, HIGH);
+    // Write the ready buffer out to the serial line, to transmit it over bluetooth
+    Serial.write(len);
+    Serial.write(buffer, len);
+    //clear TX signal
+    digitalWrite(txLedPin, LOW);  
+}
+
+/** ---------------  ADC Interrupt routines for audio sampling --------------- **/
 
 void setupADCInterruptOnPin(int analogInPin) {
   // clear ADLAR in ADMUX (0x7C) to right-adjust the result
@@ -69,72 +129,35 @@ void setupADCInterruptOnPin(int analogInPin) {
   // supplies by default.
   sei();
  
-  // Kick off the first ADC
-  readFlag = 0;
   // Set ADSC in ADCSRA (0x7A) to start the ADC conversion
   ADCSRA |=B01000000;
-  
-  Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, HIGH);
 }
-
-volatile int maxVal = 0;
-
-//TODO: may have to use shorts for full resolution
-byte buffer1[256];
-byte buffer2[256];
-
-byte *curBuffer   = buffer1;
-byte *readyBuffer;
-int bufPos = 0;
-
-// Processor loop
-void loop(){
-
-  // Check to see if the value has been updated
-  if (readFlag == 1) {
-    Serial.println("Swap");
-//    Serial.println(readyBuffer[0], HEX);
-  //  Serial.write(readyBuffer[
-    Serial.write(readyBuffer, 256);
-//    if (analogVal > maxVal) {
-//      maxVal = analogVal;
-//      Serial.println("Woo");
-//      Serial.println(maxVal);
-//    }
-
-    readFlag = 0;
-  }
- 
-  // Whatever else you would normally have running in loop().
- 
-}
-
 
 // Interrupt service routine for the ADC completion
 ISR(ADC_vect){
 
   // Must read low first
-  int analogLo = ADCL;
-  int analogHi = ADCH;
-  analogVal = analogLo | (analogHi << 8);
-  curBuffer[bufPos] = (byte)(analogVal >> 4); //take top 8 bits
-  bufPos++;
-  if (bufPos >= 256) {
-    // Done reading
-    readFlag = 1;
-    readyBuffer = curBuffer;
-    if (curBuffer == buffer1) {
-      curBuffer = buffer2;
-    } else {
-      curBuffer = buffer1;
-    }
-
-    bufPos = 0;
-  }
+  soundSampleReceived(ADCL | (ADCH << 8));
   
   // Not needed because free-running mode is enabled.
   // Set ADSC in ADCSRA (0x7A) to start another ADC conversion
   // ADCSRA |= B01000000;
 }
+
+/** ---------------  Serial routines for bluetooth->Arduino communications --------------- **/
+
+/*
+  SerialEvent occurs whenever a new data comes in the
+ hardware serial RX.  This routine is run between each
+ time loop() runs, so using delay inside loop can delay
+ response.  Multiple bytes of data may be available.
+ */
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    hapticByteReceived(Serial.read());
+  }
+}
+
+
+
