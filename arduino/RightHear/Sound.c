@@ -42,7 +42,8 @@ void doSoundLoop() {
 
 void soundSampleReceived(short sample) {
 
-  curBuffer[bufPos] = (byte_t)(sample >> 4); //take top 8 bits
+//  curBuffer[bufPos] = (byte_t)(sample >> 4); //take top 8 bits
+  curBuffer[bufPos] = (byte_t)(sample >> 2); //take top 8 bits
   bufPos++;
   if (bufPos >= 256) {
     swapBuffers();

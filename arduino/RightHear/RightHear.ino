@@ -28,6 +28,16 @@ int micInPin = 0; //analog in for microphone
 // Function prototypes
 void setupADCInterruptOnPin(int analogInPin);
 
+//#define ARDUINO_PLATFORM
+//#define TEENSYPP_PLATFORM
+#ifdef TEENSYPP_PLATFORM
+  HardwareSerial S = Serial1;
+  usb_serial_class Console = Serial;
+#else
+  HardwareSerial S = Serial;
+  HardwareSerial Console = Serial;
+#endif
+
 // Initialization
 void setup(){
 
@@ -44,7 +54,8 @@ void setup(){
   txSoundCallback=sendSoundBuffer;
 
   // For the bluetooth connection
-  Serial.begin(115200);
+  Console.begin(115200);
+  S.begin(115200);
  
   // Haptic feedback vibration motors
   pinMode(hapVibLeftPin,  OUTPUT);
@@ -76,8 +87,8 @@ void sendSoundBuffer(byte *buffer, int len) {
     //signal TX
     digitalWrite(txLedPin, HIGH);
     // Write the ready buffer out to the serial line, to transmit it over bluetooth
-    Serial.write(len);
-    Serial.write(buffer, len);
+//    Serial.write(len);
+    S.write(buffer, len);
     //clear TX signal
     digitalWrite(txLedPin, LOW);  
 }
@@ -107,7 +118,7 @@ void setupADCInterruptOnPin(int analogInPin) {
   // Set ADEN in ADCSRA (0x7A) to enable the ADC.
   // Note, this instruction takes 12 ADC clocks to execute
   ADCSRA |= B10000000;
- 
+  
   // Set ADATE in ADCSRA (0x7A) to enable auto-triggering.
   ADCSRA |= B00100000;
  
