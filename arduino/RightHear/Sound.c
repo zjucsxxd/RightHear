@@ -16,13 +16,13 @@
 
 //TODO: may have to use shorts for full resolution
 // Audio buffers...we use two buffers so we can be transmitting one while we accumulate in the other
-#define BUFFER_LENGTH 256
+#define BUFFER_LENGTH 128
 byte_t buffer1[BUFFER_LENGTH];
 byte_t buffer2[BUFFER_LENGTH];
 
 byte_t *curBuffer = buffer1;
 byte_t *readyBuffer;
-int bufPos = 0;
+volatile int bufPos = 0;
 
 // High when a value is ready to be read
 volatile int txFlag;
@@ -45,7 +45,7 @@ void soundSampleReceived(short sample) {
 //  curBuffer[bufPos] = (byte_t)(sample >> 4); //take top 8 bits
   curBuffer[bufPos] = (byte_t)(sample >> 2); //take top 8 bits
   bufPos++;
-  if (bufPos >= 256) {
+  if (bufPos >= BUFFER_LENGTH) {
     swapBuffers();
     // Done reading
     txFlag = 1;
