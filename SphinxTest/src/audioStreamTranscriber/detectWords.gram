@@ -6,4 +6,4 @@
 
 grammar hellostream;
 
-public <greet> = (Hello | Rita );
+public <greet> = (Hello | Rita | oh | zero | one | two | three | four | five | six | seven | eight | nine) * ;
