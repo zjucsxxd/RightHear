@@ -1,19 +1,27 @@
 
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+
+import jssc.SerialPort;
+import jssc.SerialPortException;
 
 
 public class SimpleRead {
 
     public static void main(String[] args) throws SerialPortException, IOException {
 //        SerialPort port = new SerialPort("/dev/tty.usbmodemfd121");
-        SerialPort port = new SerialPort("/dev/tty.usbmodem12341");
+    	SerialPort port =  new SerialPort("/dev/tty.usbmodem12341");
         
 
         port.openPort();
         System.out.println("Opened? " + port.isOpened());
         System.out.println("Params set? " + port.setParams(115200, 8, 1, 0));
-        FileOutputStream fos = new FileOutputStream("out_ta_1");
+        
+        ProcessingAdapter adapter = new ProcessingAdapter();
+        OutputStream toProcess = adapter.getStreamToProcessor();
+        
+        new Thread(new StreamPrinter(adapter.getDetectedWordsStream())).start();
+        
         int ii = 0;
         while (true) {
             //wait to make sure we have at least a frame
@@ -23,7 +31,7 @@ public class SimpleRead {
             System.out.println("Data Waiting: " + port.getInputBufferBytesCount());
             byte[] bytes = port.readBytes(256);
             applySilence(bytes);
-            fos.write(bytes);
+            toProcess.write(bytes);
             if ((++ii % 100) == 0) {
                 port.writeInt('A');
                 ii = 0;
