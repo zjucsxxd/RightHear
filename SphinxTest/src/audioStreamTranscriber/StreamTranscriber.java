@@ -76,7 +76,7 @@ public class StreamTranscriber {
 			return null;
 		}
 		final OutputStreamWriter out = new OutputStreamWriter(outPipe);
-
+		
 		// Kick detection into it's own thread, to allow for detection in concurrency with rest of program
 		new Thread(new Runnable() {
 			@Override

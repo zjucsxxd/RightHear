@@ -4,6 +4,10 @@
  * JSGF Grammar for Hello World example
  */
 
-grammar hellostream;
+grammar detectWords;
 
-public <greet> = (Hello | Rita | oh | zero | one | two | three | four | five | six | seven | eight | nine) * ;
+public <words> = (Hello Rita );
+
+/*
+ * public <words> = (Hello | Rita | oh | zero | one | two | three | four | five | six | seven | eight | nine) * ;
+ */

@@ -36,6 +36,7 @@
             <item>accuracyTracker </item>
             <item>speedTracker </item>
             <item>memoryTracker </item>
+            <item>recognizerMonitor</item>
         </propertylist>
    </component>
     
@@ -162,7 +163,9 @@
     <!-- The frontend pipelines                                   -->
     <!-- ******************************************************** -->
 
-    <component name="audioFileDataSource" type="edu.cmu.sphinx.frontend.util.AudioFileDataSource"/>
+    <component name="audioFileDataSource" type="edu.cmu.sphinx.frontend.util.AudioFileDataSource">
+        <property name="sampleRate" value="9615"/>
+    </component>
 
     <component name="dataBlocker" type="edu.cmu.sphinx.frontend.DataBlocker"/>
     
@@ -222,6 +225,22 @@
         <property name="frontend" value="${frontend}"/>
 	<property name="showSummary" value="true"/>
 	<property name="showDetails" value="false"/>
+    </component>
+    
+    <!-- create the recognizer monitor with the configMonitor as one of the dumpers -->
+
+    <component name="recognizerMonitor" 
+                type="edu.cmu.sphinx.instrumentation.RecognizerMonitor">
+        <property name="recognizer" value="recognizer"/>
+        <propertylist name="allocatedMonitors">
+            <item>configMonitor </item>
+        </propertylist>
+    </component>
+    
+    <!-- create the configMonitor  -->
+    <component name="configMonitor"  
+          type="edu.cmu.sphinx.instrumentation.ConfigMonitor">
+        <property name="showConfig" value="false"/>
     </component>
     
     
