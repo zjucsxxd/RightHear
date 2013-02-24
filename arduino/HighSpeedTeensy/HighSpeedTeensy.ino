@@ -5,7 +5,7 @@
   This example code is in the public domain.
  */
  
- #include "usb_serial.h"
+// #include "usb_serial.h"
  
 // Pin 13 has an LED connected on most Arduino boards.
 // Pin 11 has the LED on Teensy 2.0
@@ -28,26 +28,26 @@ void send_str(const char *s);
 
 // the setup routine runs once when you press reset:
 void setup() {                
-	// set for 16 MHz clock, and turn on the LED
-	CPU_PRESCALE(0);
-	LED_CONFIG;
-	LED_OFF;
-	DDRC |= (1<<2);  // Pin C2 to show % cpu usage
-
-	// configure timer0 to overflow every 4 ms, prescale=256, top=250
-	// 250 * 256 / 16 MHz = 4 ms
-	TIMSK0 = 0;
-	TCCR0A = (1<<WGM01)|(1<<WGM00);
-	OCR0A = 250;
-	TCCR0B = (1<<WGM02)|(1<<CS02);
-
-	// initialize the USB, and then wait for the host
-	// to set configuration.  If the Teensy is powered
-	// without a PC connected to the USB port, this 
-	// will wait forever.
-	usb_init();
-	while (!usb_configured()) /* wait */ ;
-	delay(1000);
+//	// set for 16 MHz clock, and turn on the LED
+//	CPU_PRESCALE(0);
+//	LED_CONFIG;
+//	LED_OFF;
+//	DDRC |= (1<<2);  // Pin C2 to show % cpu usage
+//
+//	// configure timer0 to overflow every 4 ms, prescale=256, top=250
+//	// 250 * 256 / 16 MHz = 4 ms
+//	TIMSK0 = 0;
+//	TCCR0A = (1<<WGM01)|(1<<WGM00);
+//	OCR0A = 250;
+//	TCCR0B = (1<<WGM02)|(1<<CS02);
+//
+//	// initialize the USB, and then wait for the host
+//	// to set configuration.  If the Teensy is powered
+//	// without a PC connected to the USB port, this 
+//	// will wait forever.
+//	usb_init();
+//	while (!usb_configured()) /* wait */ ;
+//	delay(1000);
 }
 
 // the loop routine runs over and over again forever:
@@ -59,7 +59,7 @@ void loop() {
 
 		// wait for the user to run their terminal emulator program
 		// which sets DTR to indicate it is ready to receive.
-		while (!(usb_serial_get_control() & USB_SERIAL_DTR)) /* wait */ ;
+		while (!Serial.dtr()) /* wait */ ;
 
 		// Turn the LED on while sending data
 		LED_ON;
@@ -68,9 +68,9 @@ void loop() {
 		// terminal emulator, or do whatever to get ready
 		for (n=5; n; n--) {
 			send_str(PSTR("10 second speed test begins in "));
-			usb_serial_putchar(n + '0');
+			Serial.write(n);//usb_serial_putchar(n + '0');
 			send_str(PSTR(" sec.\r\n"));
-			if (!(usb_serial_get_control() & USB_SERIAL_DTR)) break;
+			if (!Serial.dtr()) break;
 			_delay_ms(1000);
 		}
 
@@ -82,12 +82,12 @@ void loop() {
 
 		// send a string as fast as possible, for 10 seconds
 		while (1) {
-			usb_serial_write(test_string, (uint16_t)(sizeof(test_string)-1));
+			Serial.write(test_string, (uint16_t)(sizeof(test_string)-1));
 			if (IS_TIMER0_OVERFLOW()) {
 				CLEAR_TIMER0_OVERFLOW();
 				count++;
 				if (count == 2500) break;   // 10 sec
-				if (!(usb_serial_get_control() & USB_SERIAL_DTR)) break;
+    			        if (!Serial.dtr()) break;
 			}
 		}
 		PORTC &= ~(1<<2);
@@ -97,7 +97,7 @@ void loop() {
 		// after the test, wait forever doing nothing,
 		// well, at least until the terminal emulator quits
 		// or drops DTR for some reason.
-		while (usb_serial_get_control() & USB_SERIAL_DTR) /* wait */ ;
+		while (Serial.dtr()) /* wait */ ;
 }
 
 // Send a string to the USB serial port.  The string must be in
@@ -109,7 +109,7 @@ void send_str(const char *s)
 	while (1) {
 		c = pgm_read_byte(s++);
 		if (!c) break;
-		usb_serial_putchar(c);
+                Serial.write(c);
 	}
 }
 
