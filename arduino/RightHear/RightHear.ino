@@ -226,9 +226,9 @@ ISR(ADC_vect){
  */
 void serialEvent() {
   digitalWrite(txLedPin, HIGH);
-  Serial.println("EVENT");  
+//  Serial.println("EVENT");  
   while (Serial.available()) {
-    Serial.println(Serial.read());
+    Serial.read();
     digitalWrite(hapVibRightPin, HIGH);
     // get the new byte:
 //    hapticByteReceived(Serial.read());
