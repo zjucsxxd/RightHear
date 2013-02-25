@@ -95,9 +95,11 @@ void loop() {
   doSoundLoop();
   //run the haptic subroutines
 //  doHapticLoop();
+#ifdef TEENSYPP_PLATFORM
   if (Serial.available()) {
     serialEvent();
   }
+#endif
 }
 
 void doWaitSerialReady() {

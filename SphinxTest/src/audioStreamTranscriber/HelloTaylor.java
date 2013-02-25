@@ -12,6 +12,7 @@
 
 package audioStreamTranscriber;
 
+import jssc.SerialPortException;
 import edu.cmu.sphinx.recognizer.Recognizer;
 import edu.cmu.sphinx.result.Result;
 import edu.cmu.sphinx.util.props.ConfigurationManager;
@@ -23,7 +24,7 @@ import edu.cmu.sphinx.util.props.ConfigurationManager;
  */
 public class HelloTaylor {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SerialPortException {
         ConfigurationManager cm;
 
         if (args.length > 0) {
@@ -47,7 +48,7 @@ public class HelloTaylor {
         // }
 
         System.out
-                .println("Say: (Good morning | Hello) ( Bhiksha | Evandro | Paul | Philip | Rita | Will )");
+                .println("Say: (Hello | Tiffany | Stop | Hold on | Halt | Hey)");
 
         // loop the recognition until the programm exits.
         while (true) {
@@ -58,6 +59,10 @@ public class HelloTaylor {
             if (result != null) {
                 String resultText = result.getBestFinalResultNoFiller();
                 System.out.println("You said: " + resultText + '\n');
+                //send an alert back to the RightHear device
+                if (resultText != null && (resultText.equals("Hold on") | resultText.equals("Stop"))) {
+                    processor.sendAlert();
+                }
             } else {
                 System.out.println("I can't hear what you said.\n");
             }

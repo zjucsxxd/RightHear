@@ -3,6 +3,7 @@ package audioStreamTranscriber;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import jssc.SerialPort;
+import jssc.SerialPortException;
 import edu.cmu.sphinx.frontend.BaseDataProcessor;
 import edu.cmu.sphinx.frontend.Data;
 import edu.cmu.sphinx.frontend.DataEndSignal;
@@ -97,6 +98,15 @@ public class RightHearDataProcessor extends BaseDataProcessor {
         return output;
     }
     
+    /**
+     * Send an alert back to the RightHear device.
+     * 
+     * @throws SerialPortException
+     */
+    public void sendAlert() throws SerialPortException {
+        this.port.writeInt('A');
+    }
+
     private class RecordRunner implements Runnable {
 
         @Override

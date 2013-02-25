@@ -6,8 +6,4 @@
 
 grammar detectWords;
 
-public <words> = (Hello | Tiffany | Stop | Hold on | Halt | Cease) * ;
-
-/*
- * public <words> = (Hello | Rita | oh | zero | one | two | three | four | five | six | seven | eight | nine) * ;
- */
+public <words> = (Hello | Tiffany | Stop | Hold on | Halt | Hey) * ;
