@@ -14,23 +14,45 @@
 //
 //
 
+#define EXTRADEBUG
+
 #include "Haptic.h"
 #include "Sound.h"
+#include <SPP.h>
+
+USB Usb;
+BTD Btd(&Usb); // You have to create the Bluetooth Dongle instance like so
+/* You can create the instance of the class in two ways */
+//SPP SerialBT(&Btd); // This will set the name to the defaults: "Arduino" and the pin to "1234"
+SPP SerialBT(&Btd, "DuinoHearYou","0000"); // You can also set the name and pin like so
 
 #define LED_CONFIG	(DDRD |= (1<<6))
 #define LED_ON		(PORTD &= ~(1<<6))
 #define LED_OFF		(PORTD |= (1<<6))
 
 // Digital pins
-int hapVibLeftPin  = 7;
-int hapVibRightPin = 8;
+int hapVibLeftPin  = 4;
+int hapVibRightPin = 2;
 
 // Function prototypes
 void setupADCInterruptOnPin(int analogInPin);
 void setupSerial();
 
-//#define ARDUINO_PLATFORM
-#define TEENSYPP_PLATFORM
+#define ARDUINO_PLATFORM
+//#define TEENSYPP_PLATFORM
+//#define TEENSY3_PLATFORM
+
+#ifdef TEENSY3_PLATFORM
+  // Analog pins
+  #define NUM_MICS 1
+  int micPins[NUM_MICS] = {6, 7};
+  int curMicPinInx = 0;
+
+  int txLedPin = 6;
+  int txRTSPin = 4;
+  int txCTSPin = 7;
+#endif
+
 #ifdef TEENSYPP_PLATFORM
   // Analog pins
   #define NUM_MICS 2
@@ -40,24 +62,31 @@ void setupSerial();
   int txLedPin = 6;
   int txRTSPin = 4;
   int txCTSPin = 7;
-#else
+#endif
+
+#ifdef ARDUINO_PLATFORM
   // Analog pins
-  int micInPin = 0; //analog in for microphone
+//  int micInPin = 0; //analog in for microphone
+  #define NUM_MICS 2
+  int micPins[NUM_MICS] = {0, 1};
+  int curMicPinInx = 0;
   
-  int txLedPin = 13;
-  int txRTSPin = 4;
-  int txCTSPin = 7;
+  int txLedPin = 7;
+//  int txRTSPin = 9;
+//  int txCTSPin = 10;
 #endif
 
 // Initialization
 void setup(){
+  Serial.begin(115200);
 
-  setupHaptic();
-  setupSound();
-  setupSerial();
+  doSetupHaptic();
+  doSetupSound();
+//  setupSerial();
+  doSetupBluetooth();
 
   //set up the ADC to sample from and kick off the first ADC
-  setupADCInterruptOnPin(micPins[curMicPinInx]);
+//  setupADCInterruptOnPin(micPins[curMicPinInx]);
   
   // Callback for haptic feedback/alerts
   hapticCallback=alertUserHaptic;
@@ -65,14 +94,9 @@ void setup(){
   // Callback for sending sound buffer
   txSoundCallback=sendSoundBuffer;
 
-  // Haptic feedback vibration motors
-  pinMode(hapVibLeftPin,  OUTPUT);
-  pinMode(hapVibRightPin, OUTPUT);
-
   // TX light
-  pinMode(txLedPin, OUTPUT);
-  pinMode(txRTSPin, OUTPUT);
-  pinMode(txCTSPin, INPUT);
+//  pinMode(txRTSPin, OUTPUT);
+//  pinMode(txCTSPin, INPUT);
 }
 
 #define CLEAR_TIMER0_OVERFLOW() (TIFR0 |= (1<<TOV0))
@@ -86,15 +110,48 @@ void setupSerial() {
   #endif
 }
 
+void doSetupSound() {
+  setupSound();
+}
+
+void doSetupBluetooth() {
+  pinMode(txLedPin, OUTPUT);
+  if (Usb.Init() == -1) {
+    Serial.print(F("\r\nOSC did not start"));
+    while(1); //halt
+  }
+  digitalWrite(txLedPin, HIGH);
+  delay(500);
+  digitalWrite(txLedPin, LOW);
+  Serial.print(F("\r\nSPP Bluetooth Library Started"));
+}
+void doSetupHaptic() {
+  // Haptic feedback vibration motors
+  pinMode(hapVibLeftPin,  OUTPUT);
+  pinMode(hapVibRightPin, OUTPUT);
+
+  //set up the haptic system, then test the sucker out
+  setupHaptic();
+  alertUserHaptic(0);
+}
 // Processor loop
 void loop() {
 
-  //NOTE: these both work on callbacks.
-  doWaitSerialReady();
-  //run the sound subroutines
-  doSoundLoop();
-  //run the haptic subroutines
-//  doHapticLoop();
+  Usb.Task();
+
+  if (SerialBT.connected) {
+    digitalWrite(txLedPin, HIGH);
+    //NOTE: these both work on callbacks.
+//    doWaitSerialReady();
+    //run the sound subroutines
+    doSoundLoop();
+    if(SerialBT.available()) {
+      hapticByteReceived(SerialBT.read());
+    }
+  } else {
+    digitalWrite(txLedPin, LOW);
+  }
+    
 #ifdef TEENSYPP_PLATFORM
   if (Serial.available()) {
     serialEvent();
@@ -103,15 +160,22 @@ void loop() {
 }
 
 void doWaitSerialReady() {
-  LED_ON;
-  // wait for the user to run their terminal emulator program
-  // which sets DTR to indicate it is ready to receive.
-  while (!Serial.dtr()) /* wait */ ;
-  LED_OFF;
+//  LED_ON;
+//  // wait for the user to run their terminal emulator program
+//  // which sets DTR to indicate it is ready to receive.
+//  while (!Serial.dtr()) /* wait */ ;
+//  LED_OFF;
 }
 
 void alertUserHaptic(int region) {
   
+    digitalWrite(hapVibRightPin, HIGH);
+    digitalWrite(hapVibLeftPin, HIGH);
+    // get the new byte:
+//    hapticByteReceived(Serial.read());
+    delay(500);
+    digitalWrite(hapVibRightPin, LOW);
+    digitalWrite(hapVibLeftPin,  LOW);
 }
 
 int counter = 0;
@@ -124,7 +188,7 @@ void sendSoundBuffer(byte *buffer, int len) {
     }
     // Write the ready buffer out to the serial line, to transmit it over bluetooth
 //    Serial.write(len);
-    Serial.write(buffer, len);
+    SerialBT.print(buffer, len);
 
 
 //		// Turn the LED on while sending data
@@ -182,21 +246,22 @@ void setNextMic() {
 
 /** ---------------  ADC Interrupt routines for audio sampling --------------- **/
 
+
 void setupADCInterruptOnPin(int analogInPin) {
- analogReference(EXTERNAL); // 3.3V to AREF
+// analogReference(); // 3.3V to AREF
 //  adc_save = ADCSRA; // Save ADC setting for restore later
 
   // Start up ADC in free-run mode for audio sampling:
   DIDR0 |= _BV(ADC0D); // Disable digital input buffer on ADC0
-  ADMUX = analogInPin & 0xF; // Channel sel, right-adj, AREF to 3.3V regulator
+  ADMUX = analogInPin & 0xF | 1<<REFS0; // Channel sel, right-adj, AREF to 3.3V regulator
   ADCSRB = 0; // Free-run mode
   ADCSRA = _BV(ADEN)  // Enable ADC
          | _BV(ADSC)  // Start conversions
          | _BV(ADATE) // Auto-trigger enable
          | _BV(ADIE)  // Interrupt enable
          | _BV(ADPS2) // 64:1 prescale...
-         | _BV(ADPS1) // ...yields 250 KHz ADC clock...
-      /* | _BV(ADPS0)*/; // ...13 cycles/conversion = ~19230 Hz, or 2 channels of 9615 Hz
+       //  | _BV(ADPS1) // ...yields 250 KHz ADC clock...
+         | _BV(ADPS0); // ...13 cycles/conversion = ~19230 Hz, or 2 channels of 9615 Hz
     
     //TODO: need to change this to 64:1 presale, to get 2 channels at 9615 Hz...but to do that, we need to use the usb_serial.c/h library for high speed usb serial.
 }
@@ -232,11 +297,13 @@ void serialEvent() {
   while (Serial.available()) {
     Serial.read();
     digitalWrite(hapVibRightPin, HIGH);
+    digitalWrite(hapVibLeftPin, HIGH);
     // get the new byte:
 //    hapticByteReceived(Serial.read());
   }
     delay(200);
     digitalWrite(hapVibRightPin, LOW);
+    digitalWrite(hapVibLeftPin,  LOW);
   digitalWrite(txLedPin, LOW);
 }
 

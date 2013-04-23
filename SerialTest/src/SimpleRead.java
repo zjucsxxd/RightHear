@@ -12,11 +12,24 @@ public class SimpleRead {
     public static void main(String[] args) throws SerialPortException, IOException, InterruptedException {
 //        SerialPort port = new SerialPort("/dev/tty.usbmodemfd121");
 //    	SerialPort port =  new SerialPort("/dev/tty.usbmodem12341");
-        SerialPort port =  new SerialPort("/dev/tty.LauszussArduino-TKJSP");
-    	
+//        SerialPort port =  new SerialPort("/dev/tty.LauszussArduino-TKJSP");
+        SerialPort port =  new SerialPort("/dev/tty.DuinoHearYou-TKJSP");
+  	
         
-
-        port.openPort();
+//        port.closePort();
+        
+        do {
+            try {
+                port.openPort();
+                break;
+            } catch (SerialPortException e) {
+                if (e.getExceptionType().equals(SerialPortException.TYPE_PORT_BUSY)) {
+                    System.out.println("Trying again...");
+                    continue;
+                }
+                throw e;
+            }
+        } while(true);
         System.out.println("Opened? " + port.isOpened());
         System.out.println("Params set? " + port.setParams(115200, 8, 1, 0));
         
@@ -46,7 +59,9 @@ public class SimpleRead {
     //                ii = 0;
     //            }
             } else {
-                Thread.sleep(10);
+                Thread.sleep(1000);
+                port.writeByte((byte) 0xFF);
+                port.writeByte((byte) 0xFE);
             }
         }
     }
